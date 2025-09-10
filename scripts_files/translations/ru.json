@@ -1,8 +1,11 @@
 {
 	"State": "Состояние",
-	"Tormentor ESP": "Терзатель ESP",
+	"Tormentor": "Терзатель",
 	"Icon size": "Размер иконки",
-	"Mode images": "Режимы изображений",
+	"Mode images": "Режимы изображениий",
 	"Circle": "Круг",
-	"Square": "Квадрат"
+	"Square": "Квадрат",
+	"Notify on minimap": "Оповещать на миникарте",
+	"Alive": "Жив",
+	"Dead": "Мертв"
 }
