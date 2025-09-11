@@ -2,12 +2,14 @@ import {
 	CGameRules,
 	Color,
 	ConVarsSDK,
+	EntityManager,
 	ETormentorLocation,
 	GameRules,
 	GameState,
 	GUIInfo,
 	MathSDK,
 	Menu,
+	Miniboss,
 	MinibossSpawner,
 	MinimapSDK,
 	PathData,
@@ -22,10 +24,9 @@ import { MenuManager } from "./menu"
 export class GUI {
 	public IsVsible = false
 
-	private readonly nightTime = 5 * 60
-
 	private lastAlive = true
 	private lastLocation: ETormentorLocation | -1 = -1
+	private readonly nightTime = 5 * 60
 
 	constructor(private readonly menu: MenuManager) {}
 
@@ -50,7 +51,6 @@ export class GUI {
 	}
 	public Draw(gameRules: CGameRules, spawner: MinibossSpawner): void {
 		this.DrawMiniMap(spawner)
-		this.UpdateStateAndSendPing(spawner)
 
 		const position = spawner.Position.Clone()
 		if (spawner.IsAlive) {
@@ -77,6 +77,9 @@ export class GUI {
 
 		this.DrawOutlineMode(isCircle, rect, width)
 		this.DrawArc(rect, width, spawner.IsAlive ? -ratio : ratio, isCircle)
+	}
+	public PostDataUpdate(spawner: MinibossSpawner): void {
+		this.UpdateStateAndSendPing(spawner)
 	}
 	public Destroy() {
 		this.IsVsible = false
@@ -186,7 +189,9 @@ export class GUI {
 	}
 	protected UpdateStateAndSendPing(spawner: MinibossSpawner) {
 		if (this.lastAlive !== spawner.IsAlive) {
+			const boss = EntityManager.GetEntitiesByClass(Miniboss)[0]
 			this.lastAlive = spawner.IsAlive
+			this.IsVsible = boss?.IsVisible ?? false
 			this.pingMinimap(spawner)
 		}
 		if (this.lastLocation !== spawner.LocationType) {
@@ -199,7 +204,10 @@ export class GUI {
 		return time === 0 ? this.nightTime - (gameRules.GameTime % this.nightTime) : time
 	}
 	private pingMinimap(spawner: MinibossSpawner) {
-		if (this.menu.NotifyMinimap.value && !this.isInitialSpawn) {
+		if (!this.menu.State.value || this.isInitialSpawn) {
+			return
+		}
+		if (this.menu.NotifyMinimap.value) {
 			MinimapSDK.DrawPing(spawner.Position, Color.White, GameState.RawGameTime + 7)
 			SoundSDK.EmitStartSoundEvent("General.Ping")
 		}

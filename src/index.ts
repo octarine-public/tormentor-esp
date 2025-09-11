@@ -29,6 +29,7 @@ new (class CTormentorESP {
 		EventsSDK.on("EntityCreated", this.EntityCreated.bind(this))
 		EventsSDK.on("EntityDestroyed", this.EntityDestroyed.bind(this))
 		EventsSDK.on("EntityVisibleChanged", this.EntityVisibleChanged.bind(this))
+		EventsSDK.on("PostDataUpdate", this.PostDataUpdate.bind(this))
 	}
 	private get shouldDraw() {
 		if (!this.menu.State.value) {
@@ -51,6 +52,14 @@ new (class CTormentorESP {
 	protected Draw() {
 		if (this.shouldDraw) {
 			this.gui.Draw(GameRules!, this.spawner!)
+		}
+	}
+	protected PostDataUpdate(dt: number) {
+		if (dt === 0 || this.isPostGame) {
+			return
+		}
+		if (GameRules !== undefined && this.spawner !== undefined) {
+			this.gui.PostDataUpdate(this.spawner)
 		}
 	}
 	protected EntityCreated(entity: Entity) {
