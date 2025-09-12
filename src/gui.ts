@@ -8,7 +8,6 @@ import {
 	GameState,
 	GUIInfo,
 	MathSDK,
-	Menu,
 	Miniboss,
 	MinibossSpawner,
 	MinimapSDK,
@@ -68,7 +67,6 @@ export class GUI {
 			return
 		}
 
-		this.DrawStatus(rect, spawner.IsAlive)
 		this.DrawImage(isCircle, rect, spawner)
 		this.DrawTimer(rect, remainingTime)
 
@@ -116,12 +114,6 @@ export class GUI {
 			remainingTime > 60
 				? MathSDK.FormatTime(remainingTime)
 				: remainingTime.toFixed(remainingTime < 2 ? 1 : 0)
-		RendererSDK.TextByFlags(text, rect, Color.White, 3)
-	}
-	protected DrawStatus(rec: Rectangle, isAlive: boolean): void {
-		const rect = rec.Clone()
-		rect.SubtractY(rec.Height / 2 + 10)
-		const text = Menu.Localization.Localize(isAlive ? "Alive" : "Dead")
 		RendererSDK.TextByFlags(text, rect, Color.White, 3)
 	}
 	protected DrawArc(
