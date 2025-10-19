@@ -8,7 +8,8 @@ import {
 	GameRules,
 	GameState,
 	Miniboss,
-	MinibossSpawner
+	MinibossSpawner,
+	NetworkedParticle
 } from "github.com/octarine-public/wrapper/index"
 
 import { GUI } from "./gui"
@@ -18,6 +19,10 @@ new (class CTormentorESP {
 	private readonly gui!: GUI
 	private readonly menu!: MenuManager
 	private spawner: Nullable<MinibossSpawner>
+	private readonly allowParticles = new Set([
+		"particles/neutral_fx/miniboss_damage_reflect.vpcf",
+		"particles/neutral_fx/miniboss_damage_reflect_dire.vpcf"
+	])
 
 	constructor(canBeInitialized: boolean) {
 		if (!canBeInitialized) {
@@ -25,11 +30,15 @@ new (class CTormentorESP {
 		}
 		this.menu = new MenuManager()
 		this.gui = new GUI(this.menu)
+
 		EventsSDK.on("Draw", this.Draw.bind(this))
+		EventsSDK.on("PostDataUpdate", this.PostDataUpdate.bind(this))
+
 		EventsSDK.on("EntityCreated", this.EntityCreated.bind(this))
 		EventsSDK.on("EntityDestroyed", this.EntityDestroyed.bind(this))
+
 		EventsSDK.on("EntityVisibleChanged", this.EntityVisibleChanged.bind(this))
-		EventsSDK.on("PostDataUpdate", this.PostDataUpdate.bind(this))
+		EventsSDK.on("ParticleUpdated", this.ParticleUpdated.bind(this))
 	}
 	private get shouldDraw() {
 		if (!this.menu.State.value) {
@@ -76,6 +85,11 @@ new (class CTormentorESP {
 	public EntityVisibleChanged(entity: Entity) {
 		if (entity instanceof Miniboss) {
 			this.gui.IsVsible = entity.IsVisible
+		}
+	}
+	public ParticleUpdated(particle: NetworkedParticle) {
+		if (this.allowParticles.has(particle.PathNoEcon)) {
+			this.gui.UpdateLastAttack()
 		}
 	}
 })(true)

@@ -15,7 +15,8 @@ import {
 	Rectangle,
 	RendererSDK,
 	SoundSDK,
-	Vector2
+	Vector2,
+	Vector3
 } from "github.com/octarine-public/wrapper/index"
 
 import { MenuManager } from "./menu"
@@ -24,8 +25,12 @@ export class GUI {
 	public IsVsible = false
 
 	private lastAlive = true
+	private lastAttackTime = 0
+
 	private lastLocation: ETormentorLocation | -1 = -1
 	private readonly nightTime = 5 * 60
+	private readonly waveCount = 2
+	private readonly waveDelay = 0.5 // delay between waves (in sec)
 
 	constructor(private readonly menu: MenuManager) {}
 
@@ -36,17 +41,7 @@ export class GUI {
 		return ConVarsSDK.GetFloat("dota_tormentor_spawn_time", 1200)
 	}
 	private get isInitialSpawn(): boolean {
-		const gameTime = GameRules!.GameTime
-		return gameTime < this.baseSpawnTime
-	}
-	private respawnTime(gameRules: CGameRules): number {
-		const time = Math.max(gameRules.TormentorPhaseEndTime - gameRules.GameTime, 0)
-		const respawnTime = ConVarsSDK.GetFloat("dota_tormentor_respawn_time_base", 600)
-		return this.isInitialSpawn
-			? this.baseSpawnTime
-			: time <= 0
-				? this.nightTime
-				: respawnTime
+		return GameRules!.GameTime < this.baseSpawnTime
 	}
 	public Draw(gameRules: CGameRules, spawner: MinibossSpawner): void {
 		this.DrawMiniMap(spawner)
@@ -70,7 +65,7 @@ export class GUI {
 		this.DrawImage(isCircle, rect, spawner)
 		this.DrawTimer(rect, remainingTime)
 
-		const ratio = Math.max(100 * (remainingTime / this.respawnTime(gameRules)), 0)
+		const ratio = Math.max(100 * (remainingTime / this.getRespawnTime(gameRules)), 0)
 		const width = Math.round(GUIInfo.ScaleHeight(2) + Math.round(rect.Height / 15))
 
 		this.DrawOutlineMode(isCircle, rect, width)
@@ -79,10 +74,16 @@ export class GUI {
 	public PostDataUpdate(spawner: MinibossSpawner): void {
 		this.UpdateStateAndSendPing(spawner)
 	}
+	public UpdateLastAttack() {
+		if (this.lastAttackTime < GameState.RawGameTime) {
+			this.lastAttackTime = GameState.RawGameTime + 2
+		}
+	}
 	public Destroy() {
 		this.IsVsible = false
 		this.lastAlive = true
 		this.lastLocation = -1
+		this.lastAttackTime = 0
 		MinimapSDK.DeleteIcon("tormentor_icon")
 	}
 	protected ContainsHUD(position: Vector2): boolean {
@@ -101,6 +102,9 @@ export class GUI {
 			undefined,
 			"tormentor_icon"
 		)
+		if (this.lastAttackTime > GameState.RawGameTime) {
+			this.DrawWavesOnMinimap(this.lastAttackTime, spawner.Position, Color.Aqua)
+		}
 	}
 	protected DrawImage(isCircle: boolean, rect: Rectangle, spawner: MinibossSpawner) {
 		const texture = this.GetImageTexture(spawner.IsAlive)
@@ -191,9 +195,43 @@ export class GUI {
 			this.pingMinimap(spawner)
 		}
 	}
+	protected DrawWavesOnMinimap(
+		startTime: number,
+		position: Vector3,
+		color: Color
+	): void {
+		const baseWaveSize = this.getScaleMiniMapSize(),
+			elapsed = GameState.RawGameTime - startTime + 2,
+			center = MinimapSDK.WorldToMinimap(position)
+		for (let i = 0; i < this.waveCount; i++) {
+			const waveElapsed = elapsed - i * this.waveDelay
+			if (waveElapsed < 0) {
+				continue
+			}
+			const progress = Math.min(waveElapsed / 2, 1)
+			if (progress === 1) {
+				continue
+			}
+			const waveSize = baseWaveSize.MultiplyScalar(1 + progress * 2)
+			const newCol = color.Clone()
+			newCol.a *= (1 - progress) * 0.8
+			const width = this.getWidthProgress(progress)
+			const wavePos = center.Subtract(waveSize.DivideScalar(2))
+			RendererSDK.OutlinedCircle(wavePos, waveSize, newCol, width)
+		}
+	}
 	private getRemainingTime(gameRules: CGameRules): number {
 		const time = Math.max(gameRules.TormentorPhaseEndTime - gameRules.GameTime, 0)
 		return time === 0 ? this.nightTime - (gameRules.GameTime % this.nightTime) : time
+	}
+	private getRespawnTime(gameRules: CGameRules): number {
+		const time = Math.max(gameRules.TormentorPhaseEndTime - gameRules.GameTime, 0)
+		const respawnTime = ConVarsSDK.GetFloat("dota_tormentor_respawn_time_base", 600)
+		return this.isInitialSpawn
+			? this.baseSpawnTime
+			: time <= 0
+				? this.nightTime
+				: respawnTime
 	}
 	private pingMinimap(spawner: MinibossSpawner) {
 		if (!this.menu.State.value || this.isInitialSpawn) {
@@ -203,5 +241,14 @@ export class GUI {
 			MinimapSDK.DrawPing(spawner.Position, Color.White, GameState.RawGameTime + 7)
 			SoundSDK.EmitStartSoundEvent("General.Ping")
 		}
+	}
+	private getWidthProgress(progress: number) {
+		return 5 * (1 - progress)
+	}
+	private getScaleMiniMapSize(size: number = 32) {
+		return new Vector2(size, size).MultiplyScalar(this.getSizeMultiplier(300))
+	}
+	private getSizeMultiplier(size: number): number {
+		return (size / 600) * GUIInfo.GetHeightScale()
 	}
 }
