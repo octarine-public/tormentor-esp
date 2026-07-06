@@ -9,7 +9,8 @@ import {
 	GameState,
 	Miniboss,
 	MinibossSpawner,
-	NetworkedParticle
+	NetworkedParticle,
+	RendererSDK
 } from "github.com/octarine-public/wrapper/index"
 
 import { GUI } from "./gui"
@@ -31,8 +32,13 @@ new (class CTormentorESP {
 		this.menu = new MenuManager()
 		this.gui = new GUI(this.menu)
 
+		EventsSDK.on("Draw2D", this.Draw2D.bind(this))
 		EventsSDK.on("Draw", this.Draw.bind(this))
 		EventsSDK.on("PostDataUpdate", this.PostDataUpdate.bind(this))
+
+		this.menu.State.OnValue(() => RendererSDK.InvalidateDraw2D())
+		this.menu.IconSize.OnValue(() => RendererSDK.InvalidateDraw2D())
+		this.menu.ModeImage.OnValue(() => RendererSDK.InvalidateDraw2D())
 
 		EventsSDK.on("EntityCreated", this.EntityCreated.bind(this))
 		EventsSDK.on("EntityDestroyed", this.EntityDestroyed.bind(this))
@@ -60,7 +66,12 @@ new (class CTormentorESP {
 	}
 	protected Draw() {
 		if (this.shouldDraw) {
-			this.gui.Draw(GameRules!, this.spawner!)
+			this.gui.DrawWaves(this.spawner!)
+		}
+	}
+	protected Draw2D() {
+		if (this.shouldDraw) {
+			this.gui.Draw2D(GameRules!, this.spawner!)
 		}
 	}
 	protected PostDataUpdate(dt: number) {
@@ -85,6 +96,7 @@ new (class CTormentorESP {
 	public EntityVisibleChanged(entity: Entity) {
 		if (entity instanceof Miniboss) {
 			this.gui.IsVsible = entity.IsVisible
+			RendererSDK.InvalidateDraw2D()
 		}
 	}
 	public ParticleUpdated(particle: NetworkedParticle) {

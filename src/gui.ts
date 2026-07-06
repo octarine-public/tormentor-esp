@@ -21,8 +21,12 @@ import {
 
 import { MenuManager } from "./menu"
 
+const TORMENTOR_KIND = RendererSDK.AllocateAnchorKind()
+
 export class GUI {
 	public IsVsible = false
+
+	private static readonly drawAnchor = new Vector2()
 
 	private lastAlive = true
 	private lastAttackTime = 0
@@ -43,7 +47,7 @@ export class GUI {
 	private get isInitialSpawn(): boolean {
 		return GameRules!.GameTime < this.baseSpawnTime
 	}
-	public Draw(gameRules: CGameRules, spawner: MinibossSpawner): void {
+	public Draw2D(gameRules: CGameRules, spawner: MinibossSpawner): void {
 		this.DrawMiniMap(spawner)
 
 		const position = spawner.Position.Clone()
@@ -54,22 +58,49 @@ export class GUI {
 		if (w2s === undefined || this.ContainsHUD(w2s)) {
 			return
 		}
-		const rect = this.GetPosition(w2s),
+		const rect = this.GetPosition(GUI.drawAnchor),
 			remainingTime = this.getRemainingTime(gameRules),
 			isCircle = this.menu.ModeImage.SelectedID === 0
-		if (this.IsVsible && spawner.IsAlive) {
-			this.DrawTimer(rect, remainingTime)
-			return
+
+		RendererSDK.DrawEntityRelative(
+			spawner.Index,
+			TORMENTOR_KIND,
+			() => {
+				const pos = spawner.Position.Clone()
+				if (spawner.IsAlive) {
+					pos.AddScalarZ(200)
+				}
+				const screen = RendererSDK.WorldToScreen(pos)
+				if (screen === undefined || this.ContainsHUD(screen)) {
+					return undefined
+				}
+				return screen
+			},
+			() => {
+				if (this.IsVsible && spawner.IsAlive) {
+					this.DrawTimer(rect, remainingTime)
+					return
+				}
+				this.DrawImage(isCircle, rect, spawner)
+				this.DrawTimer(rect, remainingTime)
+
+				const ratio = Math.max(
+					100 * (remainingTime / this.getRespawnTime(gameRules)),
+					0
+				)
+				const width = Math.round(
+					GUIInfo.ScaleHeight(2) + Math.round(rect.Height / 15)
+				)
+
+				this.DrawOutlineMode(isCircle, rect, width)
+				this.DrawArc(rect, width, spawner.IsAlive ? -ratio : ratio, isCircle)
+			}
+		)
+	}
+	public DrawWaves(spawner: MinibossSpawner): void {
+		if (this.lastAttackTime > GameState.RawGameTime) {
+			this.DrawWavesOnMinimap(this.lastAttackTime, spawner.Position, Color.Aqua)
 		}
-
-		this.DrawImage(isCircle, rect, spawner)
-		this.DrawTimer(rect, remainingTime)
-
-		const ratio = Math.max(100 * (remainingTime / this.getRespawnTime(gameRules)), 0)
-		const width = Math.round(GUIInfo.ScaleHeight(2) + Math.round(rect.Height / 15))
-
-		this.DrawOutlineMode(isCircle, rect, width)
-		this.DrawArc(rect, width, spawner.IsAlive ? -ratio : ratio, isCircle)
 	}
 	public PostDataUpdate(spawner: MinibossSpawner): void {
 		this.UpdateStateAndSendPing(spawner)
@@ -102,9 +133,6 @@ export class GUI {
 			undefined,
 			"tormentor_icon"
 		)
-		if (this.lastAttackTime > GameState.RawGameTime) {
-			this.DrawWavesOnMinimap(this.lastAttackTime, spawner.Position, Color.Aqua)
-		}
 	}
 	protected DrawImage(isCircle: boolean, rect: Rectangle, spawner: MinibossSpawner) {
 		const texture = this.GetImageTexture(spawner.IsAlive)
@@ -189,10 +217,12 @@ export class GUI {
 			this.lastAlive = spawner.IsAlive
 			this.IsVsible = boss?.IsVisible ?? false
 			this.pingMinimap(spawner)
+			RendererSDK.InvalidateDraw2D()
 		}
 		if (this.lastLocation !== spawner.LocationType) {
 			this.lastLocation = spawner.LocationType
 			this.pingMinimap(spawner)
+			RendererSDK.InvalidateDraw2D()
 		}
 	}
 	protected DrawWavesOnMinimap(
