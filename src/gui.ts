@@ -1,23 +1,3 @@
-import {
-	CGameRules,
-	Color,
-	ConVarsSDK,
-	EntityManager,
-	ETormentorLocation,
-	GameRules,
-	GameState,
-	GUIInfo,
-	MathSDK,
-	Miniboss,
-	MinibossSpawner,
-	MinimapSDK,
-	PathData,
-	Rectangle,
-	RendererSDK,
-	SoundSDK,
-	Vector2,
-	Vector3
-} from "github.com/octarine-public/wrapper/index"
 
 import { MenuManager } from "./menu"
 
@@ -41,7 +21,7 @@ export class GUI {
 		return ConVarsSDK.GetFloat("dota_tormentor_spawn_time", 1200)
 	}
 	private get isInitialSpawn(): boolean {
-		return GameRules!.GameTime < this.baseSpawnTime
+		return Dota2SDK.GameRules!.GameTime < this.baseSpawnTime
 	}
 	public Draw(gameRules: CGameRules, spawner: MinibossSpawner): void {
 		this.DrawMiniMap(spawner)
@@ -116,7 +96,7 @@ export class GUI {
 		}
 		const text =
 			remainingTime > 60
-				? MathSDK.FormatTime(remainingTime)
+				? Math.formatTime(remainingTime)
 				: remainingTime.toFixed(remainingTime < 2 ? 1 : 0)
 		RendererSDK.TextByFlags(text, rect, Color.White, 3)
 	}
