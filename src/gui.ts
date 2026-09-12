@@ -1,4 +1,4 @@
-
+import { canvas } from "../render"
 import { MenuManager } from "./menu"
 
 export class GUI {
@@ -8,9 +8,9 @@ export class GUI {
 	private lastAttackTime = 0
 
 	private lastLocation: ETormentorLocation | -1 = -1
-	private readonly nightTime = 5 * 60
+	private readonly nightTime = 300
 	private readonly waveCount = 2
-	private readonly waveDelay = 0.5 // delay between waves (in sec)
+	private readonly waveDelay = 0.5
 
 	constructor(private readonly menu: MenuManager) {}
 
@@ -88,7 +88,11 @@ export class GUI {
 	}
 	protected DrawImage(isCircle: boolean, rect: Rectangle, spawner: MinibossSpawner) {
 		const texture = this.GetImageTexture(spawner.IsAlive)
-		RendererSDK.Image(texture, rect.pos1, isCircle ? 0 : -1, rect.Size, Color.White)
+		canvas.Image(texture, rect.pos1, rect.Size, {
+			color: Color.White,
+
+			circle: isCircle
+		})
 	}
 	protected DrawTimer(rect: Rectangle, remainingTime: number): void {
 		if (remainingTime === 0) {
@@ -98,7 +102,10 @@ export class GUI {
 			remainingTime > 60
 				? Math.formatTime(remainingTime)
 				: remainingTime.toFixed(remainingTime < 2 ? 1 : 0)
-		RendererSDK.TextByFlags(text, rect, Color.White, 3)
+		canvas.TextIn(text, rect, {
+			color: Color.White,
+			size: rect.Height / 3 + 4
+		})
 	}
 	protected DrawArc(
 		position: Rectangle,
@@ -107,29 +114,22 @@ export class GUI {
 		isCircle: boolean
 	) {
 		if (isCircle) {
-			RendererSDK.Arc(
-				270,
-				-ratio,
-				position.pos1,
-				position.Size,
-				false,
-				width,
-				Color.Green
-			)
+			canvas.Circle(position.pos1, position.Size, {
+				color: Color.fromUint32(0),
+				borderColor: Color.Green,
+				borderWidth: width,
+				start: 270,
+				sweep: -ratio * 3.6
+			})
 		} else {
-			RendererSDK.Radial(
-				270,
-				-ratio,
-				position.pos1,
-				position.Size,
-				Color.Black,
-				undefined,
-				undefined,
-				Color.Green,
-				false,
-				3,
-				true
-			)
+			const sweep = Math.clamp(-ratio, -100, 100) * 3.6
+			canvas.Rect(position.pos1.AddScalar(-1), position.Size.AddScalar(2), {
+				color: Color.fromUint32(0),
+				borderColor: Color.Green,
+				borderWidth: 3,
+				start: 270,
+				sweep: sweep < 0 ? sweep + 360 : sweep
+			})
 		}
 	}
 	protected DrawOutlineMode(
@@ -139,15 +139,18 @@ export class GUI {
 		color: Color = Color.Black
 	) {
 		if (isCircle) {
-			RendererSDK.OutlinedCircle(position.pos1, position.Size, color, width)
+			canvas.Circle(position.pos1, position.Size, {
+				color: Color.fromUint32(0),
+				borderColor: color,
+				borderWidth: width
+			})
 			return
 		}
-		RendererSDK.OutlinedRect(
-			position.pos1.AddScalar(-1),
-			position.Size.AddScalar(3 - 1),
-			width,
-			color
-		)
+		canvas.Rect(position.pos1.AddScalar(-1), position.Size.AddScalar(2), {
+			color: Color.fromUint32(0),
+			borderColor: color,
+			borderWidth: width
+		})
 	}
 	protected GetPosition(w2s: Vector2): Rectangle {
 		const menuSize = this.iconSize
@@ -197,7 +200,11 @@ export class GUI {
 			newCol.a *= (1 - progress) * 0.8
 			const width = this.getWidthProgress(progress)
 			const wavePos = center.Subtract(waveSize.DivideScalar(2))
-			RendererSDK.OutlinedCircle(wavePos, waveSize, newCol, width)
+			canvas.Circle(wavePos, waveSize, {
+				color: Color.fromUint32(0),
+				borderColor: newCol,
+				borderWidth: width
+			})
 		}
 	}
 	private getRemainingTime(gameRules: CGameRules): number {
