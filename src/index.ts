@@ -1,107 +1,74 @@
 import "./translations"
 
-import {
-	DOTAGameState,
-	DOTAGameUIState,
-	Entity,
-	EventsSDK,
-	GameRules,
-	GameState,
-	Miniboss,
-	MinibossSpawner,
-	NetworkedParticle,
-	RendererSDK
-} from "github.com/octarine-public/wrapper/index"
-
-import { GUI } from "./gui"
 import { MenuManager } from "./menu"
+import { TormentorModel } from "./model"
+
+/** The flash of the Tormentor's reflect: it plays on every hit it takes, in either pit. */
+const REFLECT_PARTICLES = new Set([
+	"particles/neutral_fx/miniboss_damage_reflect.vpcf",
+	"particles/neutral_fx/miniboss_damage_reflect_dire.vpcf"
+])
 
 new (class CTormentorESP {
-	private readonly gui!: GUI
 	private readonly menu!: MenuManager
-	private spawner: Nullable<MinibossSpawner>
-	private readonly allowParticles = new Set([
-		"particles/neutral_fx/miniboss_damage_reflect.vpcf",
-		"particles/neutral_fx/miniboss_damage_reflect_dire.vpcf"
-	])
+	private tormentor: Nullable<TormentorModel>
 
 	constructor(canBeInitialized: boolean) {
 		if (!canBeInitialized) {
 			return
 		}
 		this.menu = new MenuManager()
-		this.gui = new GUI(this.menu)
-
-		EventsSDK.on("Draw2D", this.Draw2D.bind(this))
 		EventsSDK.on("Draw", this.Draw.bind(this))
+		EventsSDK.on("GameEnded", this.GameEnded.bind(this))
 		EventsSDK.on("PostDataUpdate", this.PostDataUpdate.bind(this))
-
-		this.menu.State.OnValue(() => RendererSDK.InvalidateDraw2D())
-		this.menu.IconSize.OnValue(() => RendererSDK.InvalidateDraw2D())
-		this.menu.ModeImage.OnValue(() => RendererSDK.InvalidateDraw2D())
 
 		EventsSDK.on("EntityCreated", this.EntityCreated.bind(this))
 		EventsSDK.on("EntityDestroyed", this.EntityDestroyed.bind(this))
 
-		EventsSDK.on("EntityVisibleChanged", this.EntityVisibleChanged.bind(this))
+		EventsSDK.on("ParticleCreated", this.ParticleUpdated.bind(this))
 		EventsSDK.on("ParticleUpdated", this.ParticleUpdated.bind(this))
-	}
-	private get shouldDraw() {
-		if (!this.menu.State.value) {
-			return false
-		}
-		if (!this.isUIGame || this.isPostGame) {
-			return false
-		}
-		return GameRules !== undefined && this.spawner !== undefined
 	}
 	private get isUIGame() {
 		return GameState.UIState === DOTAGameUIState.DOTA_GAME_UI_DOTA_INGAME
 	}
 	private get isPostGame() {
 		return (
-			GameRules === undefined ||
-			GameRules.GameState === DOTAGameState.DOTA_GAMERULES_STATE_POST_GAME
+			Dota2SDK.GameRules === undefined ||
+			Dota2SDK.GameRules.GameState === DOTAGameState.DOTA_GAMERULES_STATE_POST_GAME
 		)
+	}
+	private get shouldDraw() {
+		return this.menu.State.value && this.isUIGame && !this.isPostGame
+	}
+	protected GameEnded() {
+		this.tormentor?.Destroy()
+		this.tormentor = undefined
 	}
 	protected Draw() {
 		if (this.shouldDraw) {
-			this.gui.DrawWaves(this.spawner!)
-		}
-	}
-	protected Draw2D() {
-		if (this.shouldDraw) {
-			this.gui.Draw2D(GameRules!, this.spawner!)
+			this.tormentor?.Draw()
 		}
 	}
 	protected PostDataUpdate(dt: number) {
-		if (dt === 0 || this.isPostGame) {
-			return
-		}
-		if (GameRules !== undefined && this.spawner !== undefined) {
-			this.gui.PostDataUpdate(this.spawner)
+		if (dt !== 0 && !this.isPostGame) {
+			this.tormentor?.PostDataUpdate()
 		}
 	}
 	protected EntityCreated(entity: Entity) {
 		if (entity instanceof MinibossSpawner) {
-			this.spawner = entity
+			this.tormentor = new TormentorModel(entity)
 		}
 	}
 	protected EntityDestroyed(entity: Entity) {
-		if (entity === this.spawner) {
-			this.spawner = undefined
-			this.gui.Destroy()
+		const tormentor = this.tormentor
+		if (tormentor !== undefined && tormentor.Entity === entity) {
+			tormentor.Destroy()
+			this.tormentor = undefined
 		}
 	}
-	public EntityVisibleChanged(entity: Entity) {
-		if (entity instanceof Miniboss) {
-			this.gui.IsVsible = entity.IsVisible
-			RendererSDK.InvalidateDraw2D()
-		}
-	}
-	public ParticleUpdated(particle: NetworkedParticle) {
-		if (this.allowParticles.has(particle.PathNoEcon)) {
-			this.gui.UpdateLastAttack()
+	protected ParticleUpdated(particle: NetworkedParticle) {
+		if (REFLECT_PARTICLES.has(particle.PathNoEcon)) {
+			this.tormentor?.Hit()
 		}
 	}
 })(true)

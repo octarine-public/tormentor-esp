@@ -1,284 +1,306 @@
-import {
-	CGameRules,
-	Color,
-	ConVarsSDK,
-	EntityManager,
-	ETormentorLocation,
-	GameRules,
-	GameState,
-	GUIInfo,
-	MathSDK,
-	Miniboss,
-	MinibossSpawner,
-	MinimapSDK,
-	PathData,
-	Rectangle,
-	RendererSDK,
-	SoundSDK,
-	Vector2,
-	Vector3
-} from "github.com/octarine-public/wrapper/index"
-
+import { canvas, surface } from "../render"
 import { MenuManager } from "./menu"
 
-const TORMENTOR_KIND = RendererSDK.AllocateAnchorKind()
+/** What the Tormentor is doing, which decides the colour the chip wears and what it reads. */
+export const enum TormentorState {
+	/** The Tormentor is on its way: the chip counts down to its spawn. */
+	Waiting,
+	/** The Tormentor stands in its pit: the chip counts down to its move across the map. */
+	Alive,
+	/** Someone is hitting the Tormentor: the same count, in the colour of a fight. */
+	Attacked
+}
+
+/**
+ * The chip the pit wears in the world, in dp at the slider's middle: the card the menu's own
+ * panels wear - its glass, its hairline rim, its frost and its halo, whatever the theme set - washed
+ * in the colour of the Tormentor's state, its own art and the time left. The slider scales the
+ * whole thing about {@link SIZE_BASE}.
+ */
+const HEIGHT = 24
+/**
+ * The corner, in dp: the menu's own card radius, which carries the theme's radius scale with it,
+ * held to a pill so a wide radius on a low chip never turns its corners inside out.
+ */
+const RADIUS = Math.min(MenuSDK.HudCardRadius, HEIGHT / 2)
+const PAD = 7
+const GAP = 6
+const GLYPH = 18
+const FONT = 12
+const WEIGHT = MenuSDK.HudBold
+/** How deep the glass is washed in the tint over the theme's own colour, out of 255. */
+const TINT = 36
+/** How dark the outline under the time is cut, 0 to 1: enough to hold on a lit wall, not a black rim. */
+const OUTLINE = 0.5
+/** The slider value the chip is drawn at 1:1 on; every notch is a twelfth either way. */
+const SIZE_BASE = 4
+const SIZE_STEP = 12
+/** How high over the pit the chip stands while the Tormentor is up, in world units: clear of it. */
+const BOSS_LIFT = 200
+/** How long the chip takes to glide most of the way up over the Tormentor, or back down, in ms. */
+const GLIDE_MS = 120
+/** How long the plate takes to turn most of the way to the colour of a new state, in ms. */
+const RECOLOR_MS = 160
+/**
+ * How long the reading takes to come most of the way in, or to go back out, in ms: the plate opens
+ * under it as it fades in, and closes over it as it fades out, rather than the chip jumping a
+ * word wider or narrower on the frame the reading started or stopped.
+ */
+const REVEAL_MS = 80
+/** How long one set of waves runs out over the minimap, in seconds. */
+const WAVE_SECONDS = 2
+/** The minimap's name for the Tormentor, and the key its icon is kept under. */
+const MINIMAP_ICON = "tormentor"
+const MINIMAP_KEY = "tormentor_icon"
+/**
+ * The Tormentor's own art: the icon the game's top bar counts it down under, cut for the side
+ * the pit stands on. The top pit is the Radiant's, the bottom one the Dire's.
+ */
+const RADIANT_GLYPH = `${PathData.ImagePath}/hud/tormentor_timer_icon_radiant_png.vtex_c`
+const DIRE_GLYPH = `${PathData.ImagePath}/hud/tormentor_timer_icon_dire_png.vtex_c`
+
+/** The art of the pit at `location`: on the chip in the world and on the card of an alert. */
+export function GlyphOf(location: ETormentorLocation) {
+	return location === ETormentorLocation.TORMENTOR_LOCATION_TOP
+		? RADIANT_GLYPH
+		: DIRE_GLYPH
+}
+
+/**
+ * The colour the chip is known by in each state: the cold steel of the Tormentor's crystal while
+ * it is on its way, the green of its aura once it stands, the orange of a fight.
+ */
+const WaitingTint = new Color(120, 190, 230)
+const AliveTint = new Color(96, 220, 120)
+const AttackedTint = new Color(255, 140, 70)
+
+export function StateTint(state: TormentorState) {
+	switch (state) {
+		case TormentorState.Alive:
+			return AliveTint
+		case TormentorState.Attacked:
+			return AttackedTint
+		default:
+			return WaitingTint
+	}
+}
 
 export class GUI {
-	public IsVsible = false
+	/** Where the chip stands in the world, gliding towards {@link GUI.target}. */
+	private readonly position = new Vector3()
+	private readonly target = new Vector3()
+	private placed = false
+	private lastFrame = -1
+	/** The colour the chip wears this frame, on its way to the colour of the current state. */
+	private readonly tint = new Color()
+	private tinted = false
+	/**
+	 * How much of the reading is there, 0 to 1: the room the plate keeps for it and how strongly it
+	 * is drawn. It eases up as a reading starts and back down once it has stopped.
+	 */
+	private reveal = 0
+	/** The last reading the chip had, kept while it fades out so the glyphs and the room stay. */
+	private shown = ""
+	/** When the last set of waves started on the minimap: a hit past its run starts another. */
+	private waveStart = -WAVE_SECONDS
+	private readonly box = new Rectangle()
+	private readonly pos = new Vector2()
+	private readonly size = new Vector2()
 
-	private static readonly drawAnchor = new Vector2()
+	public DrawWorld(
+		origin: Vector3,
+		location: ETormentorLocation,
+		state: TormentorState,
+		remaining: number,
+		menu: MenuManager
+	) {
+		const now = hrtime(),
+			dt = this.lastFrame < 0 ? 0 : now - this.lastFrame
+		this.lastFrame = now
 
-	private lastAlive = true
-	private lastAttackTime = 0
-
-	private lastLocation: ETormentorLocation | -1 = -1
-	private readonly nightTime = 5 * 60
-	private readonly waveCount = 2
-	private readonly waveDelay = 0.5 // delay between waves (in sec)
-
-	constructor(private readonly menu: MenuManager) {}
-
-	private get iconSize() {
-		return this.menu.IconSize.value + 44
-	}
-	private get baseSpawnTime() {
-		return ConVarsSDK.GetFloat("dota_tormentor_spawn_time", 1200)
-	}
-	private get isInitialSpawn(): boolean {
-		return GameRules!.GameTime < this.baseSpawnTime
-	}
-	public Draw2D(gameRules: CGameRules, spawner: MinibossSpawner): void {
-		this.DrawMiniMap(spawner)
-
-		const position = spawner.Position.Clone()
-		if (spawner.IsAlive) {
-			position.AddScalarZ(200)
+		// the chip stands over the Tormentor while it is up, and back on the pit once it is gone
+		this.target.CopyFrom(origin)
+		if (state !== TormentorState.Waiting) {
+			this.target.AddScalarZ(BOSS_LIFT)
 		}
-		const w2s = RendererSDK.WorldToScreen(position)
-		if (w2s === undefined || this.ContainsHUD(w2s)) {
+		if (!this.placed) {
+			this.position.CopyFrom(this.target)
+			this.placed = true
+		} else if (!this.position.Equals(this.target)) {
+			this.position.LerpForThis(this.target, Math.min(dt / GLIDE_MS, 1))
+		}
+		this.recolor(MenuSDK.HudColors.readable(StateTint(state)), dt)
+
+		const w2s = RendererSDK.WorldToScreen(this.position)
+		if (w2s === undefined || GUIInfo.Contains(w2s)) {
 			return
 		}
-		const rect = this.GetPosition(GUI.drawAnchor),
-			remainingTime = this.getRemainingTime(gameRules),
-			isCircle = this.menu.ModeImage.SelectedID === 0
+		const k = (menu.Size.value + SIZE_STEP) / (SIZE_BASE + SIZE_STEP),
+			text = this.reading(remaining, menu)
+		if (text.length !== 0) {
+			this.shown = text
+		}
+		this.approach(text.length === 0 ? 0 : 1, dt)
 
-		RendererSDK.DrawEntityRelative(
-			spawner.Index,
-			TORMENTOR_KIND,
-			() => {
-				const pos = spawner.Position.Clone()
-				if (spawner.IsAlive) {
-					pos.AddScalarZ(200)
-				}
-				const screen = RendererSDK.WorldToScreen(pos)
-				if (screen === undefined || this.ContainsHUD(screen)) {
-					return undefined
-				}
-				return screen
-			},
-			() => {
-				if (this.IsVsible && spawner.IsAlive) {
-					this.DrawTimer(rect, remainingTime)
-					return
-				}
-				this.DrawImage(isCircle, rect, spawner)
-				this.DrawTimer(rect, remainingTime)
+		// the card is laid out at the world scale, so the menu's own scale does not resize it
+		MenuSDK.setHudWorldScale(k)
+		const height = MenuSDK.hudH(HEIGHT),
+			pad = MenuSDK.hudW(PAD),
+			gap = MenuSDK.hudW(GAP),
+			glyph = MenuSDK.hudH(GLYPH),
+			// digits are measured as zeroes so a ticking reading does not make the chip breathe
+			textW =
+				this.shown.length === 0
+					? 0
+					: MenuSDK.HudText.Width(this.shown, FONT, WEIGHT),
+			slot = this.reveal * (gap + textW),
+			width = Math.round(pad + glyph + slot + pad),
+			x = Math.round(w2s.x - width / 2),
+			y = Math.round(w2s.y - height / 2),
+			centerY = y + height / 2
 
-				const ratio = Math.max(
-					100 * (remainingTime / this.getRespawnTime(gameRules)),
-					0
+		MenuSDK.SetActiveSurface(surface)
+		try {
+			this.plate(x, y, width, height)
+			this.pos.SetVector(x + pad, Math.round(centerY - glyph / 2))
+			this.size.SetVector(glyph, glyph)
+			// the art is a square icon: its corners are taken off so it sits on the pill
+			MenuSDK.HudCard.Image(
+				GlyphOf(location),
+				this.pos,
+				this.size,
+				Color.WhiteReadonly,
+				255,
+				Math.round(glyph / 4)
+			)
+			if (this.reveal > 0 && textW > 0) {
+				// the reading slides out from under the glyph as the plate opens, fading in as it
+				// goes, and back under it as the plate closes
+				MenuSDK.SetHudAlphaScale(this.reveal * this.reveal)
+				MenuSDK.HudText.Center(
+					x + width - pad - textW,
+					centerY,
+					textW,
+					this.shown,
+					FONT,
+					// the time is read in plain white whatever the state; its colour stays on the glass
+					Color.WhiteReadonly,
+					WEIGHT,
+					MenuSDK.EHudTextEffect.Outline,
+					undefined,
+					OUTLINE
 				)
-				const width = Math.round(
-					GUIInfo.ScaleHeight(2) + Math.round(rect.Height / 15)
-				)
-
-				this.DrawOutlineMode(isCircle, rect, width)
-				this.DrawArc(rect, width, spawner.IsAlive ? -ratio : ratio, isCircle)
 			}
-		)
-	}
-	public DrawWaves(spawner: MinibossSpawner): void {
-		if (this.lastAttackTime > GameState.RawGameTime) {
-			this.DrawWavesOnMinimap(this.lastAttackTime, spawner.Position, Color.Aqua)
+		} finally {
+			MenuSDK.SetActiveSurface(undefined)
 		}
 	}
-	public PostDataUpdate(spawner: MinibossSpawner): void {
-		this.UpdateStateAndSendPing(spawner)
+	/** A hit on the Tormentor: a set of waves on the minimap, unless the last one is still running. */
+	public Hit(rawTime: number) {
+		if (this.waveStart + WAVE_SECONDS <= rawTime) {
+			this.waveStart = rawTime
+		}
 	}
-	public UpdateLastAttack() {
-		if (this.lastAttackTime < GameState.RawGameTime) {
-			this.lastAttackTime = GameState.RawGameTime + 2
+	/** The icon on the minimap, and the waves of a hit running out from it while a set is up. */
+	public DrawOnMinimap(origin: Vector3, isAlive: boolean) {
+		MinimapSDK.DrawIcon(
+			MINIMAP_ICON,
+			origin,
+			350,
+			isAlive ? Color.White : Color.Red,
+			0,
+			MINIMAP_KEY
+		)
+		if (this.waveStart + WAVE_SECONDS > GameState.RawGameTime) {
+			this.DrawWavesOnMinimap(this.waveStart, origin, Color.Aqua)
 		}
 	}
 	public Destroy() {
-		this.IsVsible = false
-		this.lastAlive = true
-		this.lastLocation = -1
-		this.lastAttackTime = 0
-		MinimapSDK.DeleteIcon("tormentor_icon")
-	}
-	protected ContainsHUD(position: Vector2): boolean {
-		return (
-			GUIInfo.ContainsShop(position) ||
-			GUIInfo.ContainsMiniMap(position) ||
-			GUIInfo.ContainsScoreboard(position)
-		)
-	}
-	protected DrawMiniMap(spawner: MinibossSpawner): void {
-		MinimapSDK.DrawIcon(
-			"tormentor",
-			spawner.Position,
-			350,
-			spawner.IsAlive ? Color.Aqua : Color.Red,
-			undefined,
-			"tormentor_icon"
-		)
-	}
-	protected DrawImage(isCircle: boolean, rect: Rectangle, spawner: MinibossSpawner) {
-		const texture = this.GetImageTexture(spawner.IsAlive)
-		RendererSDK.Image(texture, rect.pos1, isCircle ? 0 : -1, rect.Size, Color.White)
-	}
-	protected DrawTimer(rect: Rectangle, remainingTime: number): void {
-		if (remainingTime === 0) {
-			return
-		}
-		const text =
-			remainingTime > 60
-				? MathSDK.FormatTime(remainingTime)
-				: remainingTime.toFixed(remainingTime < 2 ? 1 : 0)
-		RendererSDK.TextByFlags(text, rect, Color.White, 3)
-	}
-	protected DrawArc(
-		position: Rectangle,
-		width: number,
-		ratio: number,
-		isCircle: boolean
-	) {
-		if (isCircle) {
-			RendererSDK.Arc(
-				270,
-				-ratio,
-				position.pos1,
-				position.Size,
-				false,
-				width,
-				Color.Green
-			)
-		} else {
-			RendererSDK.Radial(
-				270,
-				-ratio,
-				position.pos1,
-				position.Size,
-				Color.Black,
-				undefined,
-				undefined,
-				Color.Green,
-				false,
-				3,
-				true
-			)
-		}
-	}
-	protected DrawOutlineMode(
-		isCircle: boolean,
-		position: Rectangle,
-		width: number,
-		color: Color = Color.Black
-	) {
-		if (isCircle) {
-			RendererSDK.OutlinedCircle(position.pos1, position.Size, color, width)
-			return
-		}
-		RendererSDK.OutlinedRect(
-			position.pos1.AddScalar(-1),
-			position.Size.AddScalar(3 - 1),
-			width,
-			color
-		)
-	}
-	protected GetPosition(w2s: Vector2): Rectangle {
-		const menuSize = this.iconSize
-		const size = GUIInfo.ScaleVector(menuSize, menuSize)
-		const pos = w2s.Subtract(size.DivideScalar(2))
-		return new Rectangle(pos, pos.Add(size))
-	}
-	protected GetImageTexture(isAlive: boolean): string {
-		return (
-			PathData.AbilityImagePath +
-			(isAlive
-				? "/miniboss_alleviation_png.vtex_c"
-				: "/miniboss_unyielding_shield_png.vtex_c")
-		)
-	}
-	protected UpdateStateAndSendPing(spawner: MinibossSpawner) {
-		if (this.lastAlive !== spawner.IsAlive) {
-			const boss = EntityManager.GetEntitiesByClass(Miniboss)[0]
-			this.lastAlive = spawner.IsAlive
-			this.IsVsible = boss?.IsVisible ?? false
-			this.pingMinimap(spawner)
-			RendererSDK.InvalidateDraw2D()
-		}
-		if (this.lastLocation !== spawner.LocationType) {
-			this.lastLocation = spawner.LocationType
-			this.pingMinimap(spawner)
-			RendererSDK.InvalidateDraw2D()
-		}
+		this.waveStart = -WAVE_SECONDS
+		MinimapSDK.DeleteIcon(MINIMAP_KEY)
 	}
 	protected DrawWavesOnMinimap(
 		startTime: number,
 		position: Vector3,
 		color: Color
 	): void {
-		const baseWaveSize = this.getScaleMiniMapSize(),
-			elapsed = GameState.RawGameTime - startTime + 2,
+		const waveCount = 2,
+			waveDelay = 0.5,
+			baseWaveSize = 20,
+			elapsed = GameState.RawGameTime - startTime,
 			center = MinimapSDK.WorldToMinimap(position)
-		for (let i = 0; i < this.waveCount; i++) {
-			const waveElapsed = elapsed - i * this.waveDelay
+		for (let i = 0; i < waveCount; i++) {
+			const waveElapsed = elapsed - i * waveDelay
 			if (waveElapsed < 0) {
 				continue
 			}
-			const progress = Math.min(waveElapsed / 2, 1)
+			const progress = Math.min(waveElapsed / WAVE_SECONDS, 1)
 			if (progress === 1) {
 				continue
 			}
-			const waveSize = baseWaveSize.MultiplyScalar(1 + progress * 2)
+			const waveSize = new Vector2(baseWaveSize, baseWaveSize).MultiplyScalar(
+				1 + progress * 2
+			)
 			const newCol = color.Clone()
 			newCol.a *= (1 - progress) * 0.8
-			const width = this.getWidthProgress(progress)
+			const width = this.getWidthProgress(progress) * 1.25
 			const wavePos = center.Subtract(waveSize.DivideScalar(2))
-			RendererSDK.OutlinedCircle(wavePos, waveSize, newCol, width)
+			canvas.Circle(wavePos, waveSize, {
+				color: Color.fromUint32(0),
+				borderColor: newCol,
+				borderWidth: width
+			})
 		}
 	}
-	private getRemainingTime(gameRules: CGameRules): number {
-		const time = Math.max(gameRules.TormentorPhaseEndTime - gameRules.GameTime, 0)
-		return time === 0 ? this.nightTime - (gameRules.GameTime % this.nightTime) : time
+	/**
+	 * The plate under the chip: the menu's own card, so the glass, the rim, the blur and the halo are
+	 * whatever the theme dresses its panels in, with the state's colour washed over the glass.
+	 */
+	private plate(x: number, y: number, w: number, h: number) {
+		const radius = MenuSDK.hudRadius(RADIUS)
+		this.box.pos1.SetVector(x, y)
+		this.box.pos2.SetVector(x + w, y + h)
+		MenuSDK.HudCard.Frame(this.box, 255, RADIUS)
+		MenuSDK.HudCard.Plate(x, y, w, h, radius, this.tint, MenuSDK.hudAlpha(TINT))
 	}
-	private getRespawnTime(gameRules: CGameRules): number {
-		const time = Math.max(gameRules.TormentorPhaseEndTime - gameRules.GameTime, 0)
-		const respawnTime = ConVarsSDK.GetFloat("dota_tormentor_respawn_time_base", 600)
-		return this.isInitialSpawn
-			? this.baseSpawnTime
-			: time <= 0
-				? this.nightTime
-				: respawnTime
-	}
-	private pingMinimap(spawner: MinibossSpawner) {
-		if (!this.menu.State.value || this.isInitialSpawn) {
+	/** Eases {@link GUI.reveal} part of the way to `target`, and snaps the last hair of it. */
+	private approach(target: number, dt: number) {
+		if (this.reveal === target) {
 			return
 		}
-		if (this.menu.NotifyMinimap.value) {
-			MinimapSDK.DrawPing(spawner.Position, Color.White, GameState.RawGameTime + 7)
-			SoundSDK.EmitStartSoundEvent("General.Ping")
+		this.reveal += (target - this.reveal) * Math.min(dt / REVEAL_MS, 1)
+		if (Math.abs(target - this.reveal) < 0.01) {
+			this.reveal = target
 		}
+	}
+	/** What the chip reads: the time left, the way the menu asks, or nothing while there is none. */
+	private reading(remaining: number, menu: MenuManager) {
+		if (remaining <= 0) {
+			return ""
+		}
+		return menu.FormatTime.value
+			? Math.formatTime(remaining)
+			: remaining.toFixed(remaining > 1 ? 0 : 1)
+	}
+	/** Turns the chip's colour part of the way to `target`, or all of it on the first frame. */
+	private recolor(target: Color, dt: number) {
+		if (!this.tinted) {
+			this.tint.CopyFrom(target)
+			this.tinted = true
+			return
+		}
+		if (this.tint.Equals(target)) {
+			return
+		}
+		const at = Math.min(dt / RECOLOR_MS, 1)
+		this.tint.SetColor(
+			Math.round(this.tint.r + (target.r - this.tint.r) * at),
+			Math.round(this.tint.g + (target.g - this.tint.g) * at),
+			Math.round(this.tint.b + (target.b - this.tint.b) * at),
+			255
+		)
 	}
 	private getWidthProgress(progress: number) {
 		return 5 * (1 - progress)
-	}
-	private getScaleMiniMapSize(size: number = 32) {
-		return new Vector2(size, size).MultiplyScalar(this.getSizeMultiplier(300))
-	}
-	private getSizeMultiplier(size: number): number {
-		return (size / 600) * GUIInfo.GetHeightScale()
 	}
 }
