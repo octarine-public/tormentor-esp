@@ -28,6 +28,7 @@ const GAP = 6
 const GLYPH = 18
 const FONT = 12
 const WEIGHT = MenuSDK.HudBold
+const DIGIT = /\d/g
 /** How deep the glass is washed in the tint over the theme's own colour, out of 255. */
 const TINT = 36
 /** The slider value the chip is drawn at 1:1 on; every notch is a twelfth either way. */
@@ -99,6 +100,11 @@ export class GUI {
 	private reveal = 0
 	/** The last reading the chip had, kept while it fades out so the glyphs and the room stay. */
 	private shown = ""
+	/**
+	 * {@link shown} with every digit a zero: the width it is measured at, so a ticking reading does
+	 * not make the chip breathe.
+	 */
+	private metric = ""
 	/** When the last set of waves started on the minimap: a hit past its run starts another. */
 	private waveStart = -WAVE_SECONDS
 	private readonly box = new Rectangle()
@@ -134,8 +140,9 @@ export class GUI {
 		}
 		const k = (menu.Size.value + SIZE_STEP) / (SIZE_BASE + SIZE_STEP),
 			text = this.reading(remaining, menu)
-		if (text.length !== 0) {
+		if (text.length !== 0 && text !== this.shown) {
 			this.shown = text
+			this.metric = text.replace(DIGIT, "0")
 		}
 		this.approach(text.length === 0 ? 0 : 1, dt)
 
@@ -145,11 +152,10 @@ export class GUI {
 			pad = MenuSDK.hudW(PAD),
 			gap = MenuSDK.hudW(GAP),
 			glyph = MenuSDK.hudH(GLYPH),
-			// digits are measured as zeroes so a ticking reading does not make the chip breathe
 			textW =
-				this.shown.length === 0
+				this.metric.length === 0
 					? 0
-					: MenuSDK.HudText.Width(this.shown, FONT, WEIGHT),
+					: MenuSDK.HudText.Width(this.metric, FONT, WEIGHT),
 			slot = this.reveal * (gap + textW),
 			width = Math.round(pad + glyph + slot + pad),
 			x = Math.round(w2s.x - width / 2),
