@@ -30,8 +30,6 @@ const FONT = 12
 const WEIGHT = MenuSDK.HudBold
 /** How deep the glass is washed in the tint over the theme's own colour, out of 255. */
 const TINT = 36
-/** How dark the outline under the time is cut, 0 to 1: enough to hold on a lit wall, not a black rim. */
-const OUTLINE = 0.5
 /** The slider value the chip is drawn at 1:1 on; every notch is a twelfth either way. */
 const SIZE_BASE = 4
 const SIZE_STEP = 12
@@ -129,7 +127,6 @@ export class GUI {
 		} else if (!this.position.Equals(this.target)) {
 			this.position.LerpForThis(this.target, Math.min(dt / GLIDE_MS, 1))
 		}
-		this.recolor(MenuSDK.HudColors.readable(StateTint(state)), dt)
 
 		const w2s = RendererSDK.WorldToScreen(this.position)
 		if (w2s === undefined || GUIInfo.Contains(w2s)) {
@@ -161,6 +158,7 @@ export class GUI {
 
 		MenuSDK.SetActiveSurface(surface)
 		try {
+			this.recolor(MenuSDK.HudColors.readable(StateTint(state)), dt)
 			this.plate(x, y, width, height)
 			this.pos.SetVector(x + pad, Math.round(centerY - glyph / 2))
 			this.size.SetVector(glyph, glyph)
@@ -183,12 +181,8 @@ export class GUI {
 					textW,
 					this.shown,
 					FONT,
-					// the time is read in plain white whatever the state; its colour stays on the glass
-					Color.WhiteReadonly,
-					WEIGHT,
-					MenuSDK.EHudTextEffect.Outline,
-					undefined,
-					OUTLINE
+					MenuSDK.HudColors.body,
+					WEIGHT
 				)
 			}
 		} finally {
