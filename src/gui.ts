@@ -28,7 +28,6 @@ const GAP = 6
 const GLYPH = 18
 const FONT = 12
 const WEIGHT = MenuSDK.HudBold
-const DIGIT = /\d/g
 /** How deep the glass is washed in the tint over the theme's own colour, out of 255. */
 const TINT = 36
 /** The slider value the chip is drawn at 1:1 on; every notch is a twelfth either way. */
@@ -98,13 +97,10 @@ export class GUI {
 	 * is drawn. It eases up as a reading starts and back down once it has stopped.
 	 */
 	private reveal = 0
-	/** The last reading the chip had, kept while it fades out so the glyphs and the room stay. */
-	private shown = ""
-	/**
-	 * {@link shown} with every digit a zero: the width it is measured at, so a ticking reading does
-	 * not make the chip breathe.
-	 */
-	private metric = ""
+	/** The last reading the host has measured, kept while it fades out so the glyphs and the room stay. */
+	private readonly shown = new MenuSDK.HeldText(text =>
+		MenuSDK.HudText.Width(text, FONT, WEIGHT)
+	)
 	/** When the last set of waves started on the minimap: a hit past its run starts another. */
 	private waveStart = -WAVE_SECONDS
 	private readonly box = new Rectangle()
@@ -142,27 +138,14 @@ export class GUI {
 			text = this.reading(remaining, menu)
 		// the card is laid out at the world scale, so the menu's own scale does not resize it
 		MenuSDK.setHudWorldScale(k)
-		// a reading moves in only once the host has measured it: one not measured yet comes back
-		// 0 wide, and the plate would open on nothing and then jump wide as the measurement lands
-		let measured = false
-		if (text.length !== 0) {
-			const metric = text.replace(DIGIT, "0")
-			if (MenuSDK.HudText.Width(metric, FONT, WEIGHT) !== 0) {
-				this.shown = text
-				this.metric = metric
-				measured = true
-			}
-		}
-		this.approach(text.length !== 0 && (measured || this.reveal > 0) ? 1 : 0, dt)
+		const taken = this.shown.Take(text) && this.shown.Text === text
+		this.approach(text.length !== 0 && (taken || this.reveal > 0) ? 1 : 0, dt)
 		const open = MenuSDK.EaseValue(MenuSDK.Ease.Out, this.reveal)
 		const height = MenuSDK.hudH(HEIGHT),
 			pad = MenuSDK.hudW(PAD),
 			gap = MenuSDK.hudW(GAP),
 			glyph = MenuSDK.hudH(GLYPH),
-			textW =
-				this.metric.length === 0
-					? 0
-					: MenuSDK.HudText.Width(this.metric, FONT, WEIGHT),
+			textW = this.shown.Width,
 			slot = open * (gap + textW),
 			width = Math.round(pad + glyph + slot + pad),
 			x = Math.round(w2s.x - width / 2),
@@ -192,7 +175,7 @@ export class GUI {
 					x + width - pad - textW,
 					centerY,
 					textW,
-					this.shown,
+					this.shown.Text,
 					FONT,
 					MenuSDK.HudColors.body,
 					WEIGHT
