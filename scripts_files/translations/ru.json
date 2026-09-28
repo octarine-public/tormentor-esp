@@ -21,9 +21,12 @@
 	"Show remaining\ntime as min:sec": "Показывать оставшееся\nвремя как мин:сек",
 	"Size in world": "Размер в мире",
 	"Size of the chip drawn over the pit": "Размер значка над местом появления",
-	"Spawns in {n} seconds": "Появится через {n} сек.",
-	"Moved to the top side": "Перешёл на верхнюю сторону",
-	"Moved to the bottom side": "Перешёл на нижнюю сторону",
+	"Spawns in {n} seconds": "Появится через {n} с",
+	"Moved to the top side": "Перешёл наверх",
+	"Moved to the bottom side": "Перешёл вниз",
 	"Under attack": "Под атакой",
-	"Has been killed": "Убит"
+	"Has been killed": "Убит",
+	"Notification type": "Тип уведомления",
+	"As in settings": "Как в настройках",
+	"Where to notify: as picked in Settings,\nthe game chat or a side card": "Куда выводить уведомления: как в настройках,\nв игровой чат или на боковую карточку"
 }

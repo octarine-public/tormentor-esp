@@ -1,20 +1,11 @@
+import { ChannelOf, CreateChannelSelect, MigrateChannelRow } from "./channel"
 import { TormentorIcons } from "./icons"
-
-/** The options the notification row lists, in the order it lists them. */
-const channelNames = ["Game chat", "Side card", "Disable"]
-
-/** The channel each option stands for, under the same index; "Disable" stands for none. */
-const channelsOfOption: readonly Nullable<NotificationChannel>[] = [
-	NotificationChannel.Chat,
-	NotificationChannel.Side,
-	undefined
-]
 
 export class MenuManager {
 	public static Menu: MenuManager
 
 	public readonly State: Menu.Toggle
-	/** Where the alerts go: the game chat, a side card, or nowhere. */
+	/** Where the alerts go: as picked in Settings, the game chat, a side card, or nowhere. */
 	public readonly Notification: Menu.Dropdown
 	/** Whether the Tormentor is announced before it spawns, and when it crosses the map. */
 	public readonly SpawnAlert: Menu.Toggle
@@ -49,12 +40,7 @@ export class MenuManager {
 		this.node.HeaderControl = this.State
 		this.node.Gate = this.State
 
-		this.Notification = this.node.AddDropdown(
-			"Notification",
-			[...channelNames],
-			channelsOfOption.indexOf(NotificationChannel.Side),
-			"Where the alerts go:\nthe game chat or a side card"
-		)
+		this.Notification = CreateChannelSelect(this.node, true)
 		this.Notification.IconPath = TormentorIcons.Notification
 
 		this.SpawnAlert = this.node.AddToggle(
@@ -131,10 +117,11 @@ export class MenuManager {
 
 	/** The channel the alerts are announced on, or nothing while the row is on "Disable". */
 	public get Channel(): Nullable<NotificationChannel> {
-		return channelsOfOption[this.Notification.SelectedID]
+		return ChannelOf(this.Notification)
 	}
 
 	private migrate(stored: Nullable<MenuSDK.ConfigObject>) {
+		MigrateChannelRow(stored)
 		MenuSDK.RenameStoredRow(stored, "Notify on minimap", "Minimap alert")
 	}
 }

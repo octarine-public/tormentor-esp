@@ -25,5 +25,8 @@
 	"Moved to the top side": "已移动至上方位置",
 	"Moved to the bottom side": "已移动至下方位置",
 	"Under attack": "正在被攻击",
-	"Has been killed": "已被击杀"
+	"Has been killed": "已被击杀",
+	"Notification type": "通知类型",
+	"As in settings": "跟随设置",
+	"Where to notify: as picked in Settings,\nthe game chat or a side card": "通知显示位置：跟随设置、\n游戏聊天或侧边卡片"
 }
