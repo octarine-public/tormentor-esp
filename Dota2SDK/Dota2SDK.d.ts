@@ -16,6 +16,7 @@ declare const Dota2SDK: {
 	readonly BrawlActive: typeof BrawlActive
 	readonly Building: typeof Building
 	readonly CCameraBounds: typeof CCameraBounds
+	readonly CChamsOverrides: typeof CChamsOverrides
 	readonly CCustomHeroPickRules: typeof CCustomHeroPickRules
 	readonly CDotaSafeMode: typeof CDotaSafeMode
 	readonly CGameManager: typeof CGameManager
@@ -29,6 +30,7 @@ declare const Dota2SDK: {
 	readonly CameraSDK: typeof CameraSDK
 	readonly CastPredictor: typeof CastPredictor
 	readonly CastTimeline: typeof CastTimeline
+	readonly ChamsSDK: typeof ChamsSDK
 	readonly CollisionFlag: typeof CollisionFlag
 	readonly CollisionTeam: typeof CollisionTeam
 	readonly CollisionTypes: typeof CollisionTypes
@@ -71,6 +73,7 @@ declare const Dota2SDK: {
 	readonly DotaSafeMode: typeof DotaSafeMode
 	readonly EAbilitySlot: typeof EAbilitySlot
 	readonly EBlinkType: typeof EBlinkType
+	readonly EChamsOverride: typeof EChamsOverride
 	readonly EDOTASpecialBonusOperation: typeof EDOTASpecialBonusOperation
 	readonly EDOTASpecialBonusStats: typeof EDOTASpecialBonusStats
 	readonly EFontName: typeof EFontName
@@ -5295,6 +5298,7 @@ declare const Dota2SDK: {
 	readonly tidehunter_krill_eater: typeof tidehunter_krill_eater
 	readonly tidehunter_ravage: typeof tidehunter_ravage
 	readonly tinker_defense_matrix: typeof tinker_defense_matrix
+	readonly tinker_deploy_turrets: typeof tinker_deploy_turrets
 	readonly tinker_eureka: typeof tinker_eureka
 	readonly tinker_heat_seeking_missile: typeof tinker_heat_seeking_missile
 	readonly tinker_innate_keen_teleport_gold_on_death: typeof tinker_innate_keen_teleport_gold_on_death

@@ -277,6 +277,12 @@ declare namespace MenuSDK {
 		 * directly.
 		 */
 		public Order(index: number): void
+		/**
+		 * Whether what the surface shows was drawn in the host's retained pass, and so stands until
+		 * the next one rather than being wiped by a frame that does not draw it.
+		 * @see MenuHost.onRetainedPass
+		 */
+		public get Retained(): boolean
 		public Open(): void
 		/**
 		 * A frame opens at its first command rather than on a call, so a caller drawing from more than
@@ -304,6 +310,14 @@ declare namespace MenuSDK {
 		public Destroy(): void
 		/** One tick has finished drawing: flush what was pushed, or wipe a surface that drew nothing. */
 		public Tick(): void
+		/**
+		 * Ends the host frame for this surface, which {@link EndHudFrame} does for every one: wiped
+		 * while the host keeps overlays down, left as it stands on a frame without a retained pass if
+		 * that is where it was drawn, and ticked otherwise.
+		 */
+		public EndFrame_(shown: boolean, retainedPass: boolean): void
+		/** Whether what the surface shows has frosted glass on it, which needs the backdrop captured. */
+		public get Frosted_(): boolean
 	}
 	/**
 	 * How many HUD frames have ended so far. A surface that notes the frame it last drew in can tell
@@ -333,6 +347,19 @@ declare namespace MenuSDK {
 	 * forgetting to ask.
 	 */
 	function EndHudFrame(): void
+	/**
+	 * The host's retained pass begins: a surface opened from here until {@link EndRetainedHudPass}
+	 * keeps what it draws until the next pass. Wired to {@link MenuHost.onRetainedPass}.
+	 */
+	function BeginRetainedHudPass(): void
+	/** The host's retained pass is over; see {@link BeginRetainedHudPass}. */
+	function EndRetainedHudPass(): void
+	/**
+	 * Asks the host to run its retained pass on the next frame, for a surface drawn in it that the
+	 * user is moving by hand - a panel in a drag, a hover easing in - which the pass's own rate would
+	 * make visibly step. A host without a retained pass draws every frame anyway.
+	 */
+	function RequestRetainedHudPass(): void
 	/**
 	 * How much of full opacity everything drawn onto the active surface keeps right now, 0 to 1.
 	 * {@link CHudCard.Frame} sets it from the card's own alpha so the readings on the glass fade with

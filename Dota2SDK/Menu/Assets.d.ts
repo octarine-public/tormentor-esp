@@ -15,6 +15,11 @@ declare namespace MenuSDK {
 	 */
 	/** Vector sources render through the svg element; panorama ships them as vsvg containers. */
 	function AssetElementTag(src: string): "svg" | "img"
+	/**
+	 * Whether {@link RegisterSizedAsset} cuts `path` to size, and so can bake a radius into it: raster
+	 * files only, on a host that resamples.
+	 */
+	function CanBakeSizedAsset(path: string): boolean
 	/** Returns a previously prepared raster source without creating or retaining a new asset. */
 	function PeekSizedAsset(path: string, width: number, height: number, radius?: number): string
 	/**
@@ -36,4 +41,9 @@ declare namespace MenuSDK {
 	/** Hands back a source taken from {@link RegisterSizedAsset}. A raw path is ignored. */
 	function ReleaseSizedAsset(source: string): void
 	function ResolveAsset(path: string, mode?: AssetMode): string
+	/**
+	 * Whether `path` resolves to a vector source, which only the svg element draws. Answered once per
+	 * path: a HUD routes every image it is handed through this on every frame.
+	 */
+	function IsVectorAsset(path: string): boolean
 }

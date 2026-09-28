@@ -14,6 +14,7 @@ declare namespace MenuSDK {
 		public readonly SetupEntry: Entry
 		protected readonly x: Slider
 		protected readonly y: Slider
+		protected readonly scale: Slider
 		/**
 		 * The panel's place is carried by the hand that drags it, so the two sliders holding it stay
 		 * out of the page: they are where the place is kept and read back from a config, not how it
