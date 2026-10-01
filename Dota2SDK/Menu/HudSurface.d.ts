@@ -97,6 +97,14 @@ declare namespace MenuSDK {
 		 * somewhere would mint another one and hold it for the session.
 		 */
 		effectOpacity?: number
+		/** How far the run is scrolled inside its box, in px, for a line read by travelling it. */
+		scroll?: number
+		/**
+		 * How far the glyphs dissolve into the box's left and right edges, in dp, for a line the box
+		 * cuts rather than one clipped to a prefix. Both default to 0, a hard edge.
+		 */
+		fadeHead?: number
+		fadeTail?: number
 	}
 	/**
 	 * What a run of text is cut against the thing behind it with. A card carries its own glass and
@@ -113,6 +121,27 @@ declare namespace MenuSDK {
 	}
 	/** Names of the glyph effects, in the order a dropdown offering them lists them. */
 	const HudTextEffectNames: string[]
+	/** Where a surface stands what it draws on the screen's pixel grid. */
+	const enum EHudPlacement {
+		/**
+		 * On whole pixels and at whole-pixel sizes: art is drawn texel for pixel, and a marker standing
+		 * on something the game itself draws on whole pixels - a health bar - moves in step with it.
+		 */
+		Pixel = 0,
+		/**
+		 * At the fraction of a pixel it was asked for, through each element's transform, which RmlUi
+		 * does not round: an icon gliding across the minimap moves smoothly instead of a pixel at a
+		 * time.
+		 *
+		 * A sprite frame (an image with a source rectangle) is cut out of its sheet by the host at the
+		 * frame's own resolution and scaled to the exact size asked for by the same transform, so the
+		 * GPU takes one bilinear sample of the frame a pixel - the way the game draws its own minimap
+		 * icons, crisp at any size and position. Everything else keeps a whole-pixel size, centred on
+		 * the box that was asked for - and so does a sprite on a host without
+		 * `RegisterSizedImageRegion`.
+		 */
+		Subpixel = 1
+	}
 	/** An image the surface paints this frame. */
 	interface IHudImage {
 		readonly kind: "image"
@@ -229,7 +258,7 @@ declare namespace MenuSDK {
 		 * the window's own motion; one on a HUD layer is bound by whoever owns it.
 		 */
 		public MenuBound: boolean
-		constructor(key: string, layer: EPanelLayer)
+		constructor(key: string, layer: EPanelLayer, placement?: EHudPlacement)
 		/**
 		 * The theme this surface's colours resolve against, which its layer decides: what is anchored
 		 * to the world wears the world's theme, what stands on the screen wears the panels' one.
@@ -328,8 +357,11 @@ declare namespace MenuSDK {
 	 * The surface a panel draws into, created on first use in the layer it belongs to and kept for
 	 * the session. A surface anchored to the screen goes into `Screen`, which the host stacks over
 	 * every world layer it hosts — a marker over a unit can then never cover a card.
+	 *
+	 * The placement is the surface's for life: a key asked for again gets the surface it was first
+	 * made with, whatever is asked for the second time.
 	 */
-	function HudSurfaceOf(key: string, layer: EPanelLayer): CHudSurface
+	function HudSurfaceOf(key: string, layer: EPanelLayer, placement?: EHudPlacement): CHudSurface
 	/**
 	 * Drops the surface `key` was drawing on, if it ever drew: the caller has nothing left to put on
 	 * it and nobody should tick it again. A key handed to {@link HudSurfaceOf} afterwards opens a

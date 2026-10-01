@@ -21,6 +21,7 @@ declare const Dota2SDK: {
 	readonly CDotaSafeMode: typeof CDotaSafeMode
 	readonly CGameManager: typeof CGameManager
 	readonly CGameRules: typeof CGameRules
+	readonly CHumanizer: typeof CHumanizer
 	readonly CNotificationsSDK: typeof CNotificationsSDK
 	readonly CPanelTree: typeof CPanelTree
 	readonly CPlayerResource: typeof CPlayerResource
@@ -124,6 +125,7 @@ declare const Dota2SDK: {
 	readonly HallOfFame: typeof HallOfFame
 	readonly Hero: typeof Hero
 	readonly HitChance: typeof HitChance
+	readonly Humanizer: typeof Humanizer
 	readonly ImageData: typeof ImageData
 	readonly IncomingDamage: typeof IncomingDamage
 	readonly IncomingDamageEntry: typeof IncomingDamageEntry

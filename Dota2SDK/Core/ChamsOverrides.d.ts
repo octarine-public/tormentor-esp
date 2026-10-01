@@ -18,7 +18,11 @@ declare const enum EChamsOverride {
 	 */
 	ForceDefault = -2,
 	/** A flat fill in the colour given. */
-	Flat = 0
+	Flat = 0,
+	/** A lit body in the colour given: the page's Glossy at its defaults. */
+	Glossy = 1,
+	/** A rim in the colour given, its middle clear: the page's Fresnel at its defaults. */
+	Fresnel = 2
 }
 /** One entity's override, and when it stops applying. */
 interface ChamsOverrideEntry {
@@ -48,7 +52,8 @@ declare class CChamsOverrides {
 	 * @param entity the entity, or its `Index`
 	 * @param style what to draw it with; {@link EChamsOverride}
 	 * @param color the colour to draw it in, or nothing to keep the one the page gives it
-	 * @param time how long to hold it, in seconds; omitted holds until {@link Remove}
+	 * @param time how long to hold it, in seconds; omitted holds until {@link Remove}. Either
+	 * way it ends with the entity or the game
 	 *
 	 * @example
 	 * ChamsSDK.Override(target, EChamsOverride.Flat, Color.Red, 3)

@@ -22,7 +22,7 @@ declare class CNotificationsSDK {
 	/**
 	 * Shows a notification on its channel. On the side it is menu-sdk's card, and the id that
 	 * comes back dismisses it through `MenuSDK.Notifications.Dismiss`. In the chat it is one
-	 * line - `(Octarine): [portrait] title: message[badge][icon]` - with the title in the accent
+	 * line - `(Octarine): [portrait] title: message [badge][icon]` - with the title in the accent
 	 * color and the game's own textures as inline icons, and there is nothing to return. The chat
 	 * is only there in a match, so outside one the card is shown instead.
 	 *
@@ -38,7 +38,7 @@ declare class CNotificationsSDK {
 	public Show(options: INotificationOptions): Nullable<MenuSDK.NotificationID>
 	/**
 	 * Prints one line in the game chat behind the Octarine tag. The text is the chat's own HTML:
-	 * `<font color="#66FF99">`, `<b>`, and `<img class="ChatItemIcon MHObjectiveIcon" src="s2r://…">`
+	 * `<font color="#66FF99">`, `<b>`, and `<img class="ChatItemIcon" src="s2r://…">`
 	 * for one of the game's textures. Text from elsewhere goes in through {@link EscapeChatText}.
 	 * @example
 	 * NotificationsSDK.Chat(`<font color="#66FF99">${NotificationsSDK.EscapeChatText(name)}</font> is back`)
