@@ -1,4 +1,6 @@
 {
+	"Map objects": "地图目标",
+	"Timers of the objects on the map": "地图上目标的计时器",
 	"State": "启用",
 	"Tormentor": "折磨者",
 	"Timer of the Tormentor,\nover its pit and on the minimap": "折磨者计时器，\n显示在刷新点上方和小地图上",
