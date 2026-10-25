@@ -127,7 +127,10 @@ export class GUI {
 			this.position.CopyFrom(this.target)
 			this.placed = true
 		} else if (!this.position.Equals(this.target)) {
-			this.position.LerpForThis(this.target, Math.min(dt / GLIDE_MS, 1))
+			this.position.LerpForThis(
+				this.target,
+				Math.min(MenuSDK.MotionStep(dt, GLIDE_MS, MenuSDK.EThemeScope.World), 1)
+			)
 		}
 
 		const w2s = RendererSDK.WorldToScreen(this.position)
@@ -261,7 +264,7 @@ export class GUI {
 		if (this.reveal === target) {
 			return
 		}
-		const step = (dt * MenuSDK.AnimationSpeed()) / REVEAL_MS
+		const step = MenuSDK.MotionStep(dt, REVEAL_MS, MenuSDK.EThemeScope.World)
 		this.reveal =
 			target > this.reveal
 				? Math.min(this.reveal + step, target)
@@ -286,7 +289,10 @@ export class GUI {
 		if (this.tint.Equals(target)) {
 			return
 		}
-		const at = Math.min(dt / RECOLOR_MS, 1)
+		const at = Math.min(
+			MenuSDK.MotionStep(dt, RECOLOR_MS, MenuSDK.EThemeScope.World),
+			1
+		)
 		this.tint.SetColor(
 			Math.round(this.tint.r + (target.r - this.tint.r) * at),
 			Math.round(this.tint.g + (target.g - this.tint.g) * at),
