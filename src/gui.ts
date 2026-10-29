@@ -1,4 +1,4 @@
-import { canvas, surface } from "../render"
+import { minimapCanvas, surface } from "../render"
 import { MenuManager } from "./menu"
 
 /** What the Tormentor is doing, which decides the colour the chip wears and what it reads. */
@@ -241,7 +241,7 @@ export class GUI {
 			newCol.a *= (1 - progress) * 0.8
 			const width = this.getWidthProgress(progress) * 1.25
 			const wavePos = center.Subtract(waveSize.DivideScalar(2))
-			canvas.Circle(wavePos, waveSize, {
+			minimapCanvas.Circle(wavePos, waveSize, {
 				color: Color.fromUint32(0),
 				borderColor: newCol,
 				borderWidth: width

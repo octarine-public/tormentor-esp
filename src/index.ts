@@ -19,6 +19,7 @@ new (class CTormentorESP {
 		}
 		this.menu = new MenuManager()
 		EventsSDK.on("Draw", this.Draw.bind(this))
+		EventsSDK.on("Draw2D", this.Draw2D.bind(this))
 		EventsSDK.on("GameEnded", this.GameEnded.bind(this))
 		EventsSDK.on("PostDataUpdate", this.PostDataUpdate.bind(this))
 
@@ -47,6 +48,11 @@ new (class CTormentorESP {
 	protected Draw() {
 		if (this.shouldDraw) {
 			this.tormentor?.Draw()
+		}
+	}
+	protected Draw2D() {
+		if (this.shouldDraw) {
+			this.tormentor?.Draw2D()
 		}
 	}
 	protected PostDataUpdate(dt: number) {

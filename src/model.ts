@@ -62,6 +62,7 @@ export class TormentorModel {
 			? this.floorTime(MOVE_SECONDS - (rules.GameTime % MOVE_SECONDS))
 			: 0
 	}
+	/** The chip over the pit, pinned to the world and so drawn every frame. */
 	public Draw() {
 		this.gui.DrawWorld(
 			this.Entity.Position,
@@ -70,6 +71,9 @@ export class TormentorModel {
 			this.Remaining,
 			this.menu
 		)
+	}
+	/** The icon and the waves on the minimap, which stand on the screen. */
+	public Draw2D() {
 		this.gui.DrawOnMinimap(this.Entity.Position, this.isAlive)
 	}
 	public PostDataUpdate() {
