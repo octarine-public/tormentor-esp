@@ -3,12 +3,6 @@ import "./translations"
 import { MenuManager } from "./menu"
 import { TormentorModel } from "./model"
 
-/** The flash of the Tormentor's reflect: it plays on every hit it takes, in either pit. */
-const REFLECT_PARTICLES = new Set([
-	"particles/neutral_fx/miniboss_damage_reflect.vpcf",
-	"particles/neutral_fx/miniboss_damage_reflect_dire.vpcf"
-])
-
 new (class CTormentorESP {
 	private readonly menu!: MenuManager
 	private tormentor: Nullable<TormentorModel>
@@ -26,8 +20,7 @@ new (class CTormentorESP {
 		EventsSDK.on("EntityCreated", this.EntityCreated.bind(this))
 		EventsSDK.on("EntityDestroyed", this.EntityDestroyed.bind(this))
 
-		EventsSDK.on("ParticleCreated", this.ParticleUpdated.bind(this))
-		EventsSDK.on("ParticleUpdated", this.ParticleUpdated.bind(this))
+		EventsSDK.on("GameEvent", this.GameEvent.bind(this))
 	}
 	private get isUIGame() {
 		return GameState.UIState === DOTAGameUIState.DOTA_GAME_UI_DOTA_INGAME
@@ -72,9 +65,16 @@ new (class CTormentorESP {
 			this.tormentor = undefined
 		}
 	}
-	protected ParticleUpdated(particle: NetworkedParticle) {
-		if (REFLECT_PARTICLES.has(particle.PathNoEcon)) {
-			this.tormentor?.Hit()
+	/**
+	 * A hit on the Tormentor. The game sends the damage event of the unit in the fog too, while
+	 * the flash of its reflect is only sent where the pit is seen.
+	 */
+	protected GameEvent(eventName: string, obj: IEntityHurt) {
+		if (this.tormentor === undefined || eventName !== "entity_hurt") {
+			return
+		}
+		if (EntityManager.EntityByIndex(obj.entindex_killed) instanceof Miniboss) {
+			this.tormentor.Hit()
 		}
 	}
 })(true)
