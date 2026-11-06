@@ -14,7 +14,6 @@
 	"Before spawn": "提前时间",
 	"How long before the Tormentor spawns\nthe alert goes out, in seconds": "在折磨者刷新前多少秒\n发出通知",
 	"Attack alert": "攻击提醒",
-	"Announces the moment someone starts\nhitting the Tormentor, and its death": "有人开始攻击折磨者时\n立即发出通知，并通报其死亡",
 	"Anti-spam": "防刷屏",
 	"How long after an attack alert\nthe next one is held back, in seconds": "攻击提醒后\n下一次提醒的间隔秒数",
 	"Minimap alert": "小地图提醒",
@@ -30,5 +29,12 @@
 	"Has been killed": "已被击杀",
 	"Notification type": "通知类型",
 	"As in settings": "跟随设置",
-	"Where to notify: as picked in Settings,\nthe game chat or a side card": "通知显示位置：跟随设置、\n游戏聊天或侧边卡片"
+	"Where to notify: as picked in Settings,\nthe game chat or a side card": "通知显示位置：跟随设置、\n游戏聊天或侧边卡片",
+	"Display": "显示方式",
+	"The chip over the pit and its timer": "坑上的图标及其计时器",
+	"Alerts": "提醒",
+	"Notices, sounds and pings:\nspawn, a fight at the pit and its death": "通知、声音和信号：\n出现、坑边战斗和死亡",
+	"Spawn alert settings": "出现提醒设置",
+	"Attack alert settings": "攻击提醒设置",
+	"Announces the moment someone starts hitting\nthe Tormentor, in the fog too, and its death": "有人开始攻击折磨者（包括在迷雾中）\n以及其死亡时通知"
 }

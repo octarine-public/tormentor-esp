@@ -5,6 +5,10 @@ export const TormentorIcons = {
 	/** The page itself: the Tormentor's crystal over its pit. */
 	Tormentor: `${Paths.Icons}/tormentor.svg`,
 	State: Menu.Icons.Power,
+	/** The section of what is drawn: the chip over the pit and its timer. */
+	Display: Menu.Icons.Monitor,
+	/** The section of what is told: notices, sounds and pings. */
+	Alerts: Menu.Icons.IconNotification,
 	/** The row that picks where the alerts go. */
 	Notification: Menu.Icons.Type,
 	/** The wait for the Tormentor: the row that announces it before it spawns. */

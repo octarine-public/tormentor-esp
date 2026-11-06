@@ -14,7 +14,6 @@
 	"Before spawn": "До появления",
 	"How long before the Tormentor spawns\nthe alert goes out, in seconds": "За сколько секунд до появления\nТерзателя выходит оповещение",
 	"Attack alert": "Оповещение об атаке",
-	"Announces the moment someone starts\nhitting the Tormentor, and its death": "Сообщает, как только кто-то начинает\nбить Терзателя, и о его смерти",
 	"Anti-spam": "Защита от спама",
 	"How long after an attack alert\nthe next one is held back, in seconds": "Сколько секунд после оповещения\nоб атаке сдерживается следующее",
 	"Minimap alert": "Оповещение на мини-карте",
@@ -30,5 +29,12 @@
 	"Has been killed": "Убит",
 	"Notification type": "Тип уведомления",
 	"As in settings": "Как в настройках",
-	"Where to notify: as picked in Settings,\nthe game chat or a side card": "Куда выводить уведомления: как в настройках,\nв игровой чат или на боковую карточку"
+	"Where to notify: as picked in Settings,\nthe game chat or a side card": "Куда выводить уведомления: как в настройках,\nв игровой чат или на боковую карточку",
+	"Display": "Вид",
+	"The chip over the pit and its timer": "Значок над ямой и его таймер",
+	"Alerts": "Оповещения",
+	"Notices, sounds and pings:\nspawn, a fight at the pit and its death": "Уведомления, звуки и пинги:\nпоявление, бой у ямы и смерть",
+	"Spawn alert settings": "Настройки оповещения о появлении",
+	"Attack alert settings": "Настройки оповещения об атаке",
+	"Announces the moment someone starts hitting\nthe Tormentor, in the fog too, and its death": "Сообщает, как только кто-то начинает бить\nТерзателя, в том числе в тумане, и о его смерти"
 }
